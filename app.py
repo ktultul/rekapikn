@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import time
 import sqlite3
 from functools import wraps
@@ -16,8 +17,16 @@ from google.oauth2.service_account import Credentials
 # ----------------------------------------------------------------------------
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_account.json")
+# Alternatif untuk platform tanpa upload file rahasia (mis. Vercel): isi
+# SELURUH ISI service_account.json ke env var ini (as-is, satu baris JSON).
+SERVICE_ACCOUNT_JSON = os.environ.get("SERVICE_ACCOUNT_JSON", "").strip()
 SECRET_KEY = os.environ.get("SECRET_KEY", "ganti-ini-di-production")
 DB_PATH = os.environ.get("DB_PATH", "users.db")
+# Alternatif untuk platform tanpa disk permanen (mis. Vercel): isi daftar PIN
+# sebagai JSON lewat env var ini, bukan lewat file users.db. Format:
+# {"123456": {"sheet_key": "KondomBocor", "display_name": "KondomBocor"}, ...}
+# Generate isinya lewat: python manage_pins.py export-json
+PINS_JSON = os.environ.get("PINS_JSON", "").strip()
 CACHE_SECONDS = int(os.environ.get("CACHE_SECONDS", "60"))
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_SECONDS = 300
@@ -333,6 +342,10 @@ def get_db():
 
 
 def init_db():
+    # Kalau pakai PINS_JSON (mode read-only, misal di Vercel), tidak perlu
+    # sqlite sama sekali — filesystem-nya toh tidak permanen di sana.
+    if PINS_JSON:
+        return
     conn = get_db()
     conn.execute(
         """
@@ -348,7 +361,26 @@ def init_db():
     conn.close()
 
 
+_pins_json_cache = None
+
+
 def find_user_by_pin(pin: str):
+    """Cari user berdasar PIN. Kalau env var PINS_JSON diisi, baca dari situ
+    (read-only, cocok untuk platform tanpa disk permanen kayak Vercel).
+    Kalau tidak, pakai users.db (sqlite) seperti biasa — cocok untuk
+    lokal/Render, dan mendukung penambahan user lewat manage_pins.py."""
+    global _pins_json_cache
+    if PINS_JSON:
+        if _pins_json_cache is None:
+            try:
+                _pins_json_cache = json.loads(PINS_JSON)
+            except json.JSONDecodeError:
+                _pins_json_cache = {}
+        entry = _pins_json_cache.get(pin)
+        if not entry:
+            return None
+        return {"pin": pin, "sheet_key": entry.get("sheet_key", ""), "display_name": entry.get("display_name", "")}
+
     conn = get_db()
     row = conn.execute("SELECT * FROM users WHERE pin = ?", (pin,)).fetchone()
     conn.close()
@@ -372,19 +404,36 @@ def get_client():
                 "SPREADSHEET_ID kosong. Pastikan file .env ada di folder ini dan "
                 "berisi baris SPREADSHEET_ID=... (bukan cuma .env.example)."
             )
-        if not os.path.exists(SERVICE_ACCOUNT_FILE):
-            raise RuntimeError(
-                f"File kredensial '{SERVICE_ACCOUNT_FILE}' tidak ditemukan di folder ini."
-            )
-        if os.path.getsize(SERVICE_ACCOUNT_FILE) == 0:
-            raise RuntimeError(f"File kredensial '{SERVICE_ACCOUNT_FILE}' kosong (0 byte).")
         scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-        try:
-            creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
-        except Exception as e:
-            raise RuntimeError(
-                f"Gagal baca '{SERVICE_ACCOUNT_FILE}' sebagai kredensial JSON valid: {e}"
-            )
+
+        if SERVICE_ACCOUNT_JSON:
+            # Mode env var (dipakai di platform tanpa upload file rahasia, mis. Vercel)
+            try:
+                info = json.loads(SERVICE_ACCOUNT_JSON)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"SERVICE_ACCOUNT_JSON bukan JSON valid — pastikan isinya persis "
+                    f"seluruh isi file service_account.json, satu baris: {e}"
+                )
+            try:
+                creds = Credentials.from_service_account_info(info, scopes=scopes)
+            except Exception as e:
+                raise RuntimeError(f"Gagal pakai SERVICE_ACCOUNT_JSON sebagai kredensial: {e}")
+        else:
+            # Mode file (dipakai di lokal/Render lewat Secret Files)
+            if not os.path.exists(SERVICE_ACCOUNT_FILE):
+                raise RuntimeError(
+                    f"File kredensial '{SERVICE_ACCOUNT_FILE}' tidak ditemukan di folder ini."
+                )
+            if os.path.getsize(SERVICE_ACCOUNT_FILE) == 0:
+                raise RuntimeError(f"File kredensial '{SERVICE_ACCOUNT_FILE}' kosong (0 byte).")
+            try:
+                creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Gagal baca '{SERVICE_ACCOUNT_FILE}' sebagai kredensial JSON valid: {e}"
+                )
+
         _client = gspread.authorize(creds)
     return _client
 

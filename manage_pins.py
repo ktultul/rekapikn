@@ -18,6 +18,7 @@ Contoh pemakaian:
         -> hapus user berdasarkan nama tampilan.
 """
 import argparse
+import json
 import secrets
 import sqlite3
 import sys
@@ -88,6 +89,17 @@ def cmd_remove(args):
         print(f"Tidak ditemukan user dengan nama: {args.display_name}")
 
 
+def cmd_export_json(args):
+    """Cetak seluruh isi users.db sebagai satu baris JSON, siap ditempel ke
+    environment variable PINS_JSON di platform tanpa disk permanen (Vercel).
+    users.db kamu TIDAK ikut ke-deploy dalam mode ini — cukup env var ini."""
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM users").fetchall()
+    data = {r["pin"]: {"sheet_key": r["sheet_key"], "display_name": r["display_name"]} for r in rows}
+    print(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    print(f"\n({len(data)} user — copy baris JSON di atas ke env var PINS_JSON)", file=sys.stderr)
+
+
 def cmd_bulk(args):
     """Baca file teks berisi banyak nama sekaligus, lalu buat PIN untuk semuanya.
 
@@ -154,6 +166,9 @@ def main():
     p_bulk = sub.add_parser("bulk", help="Tambah banyak user sekaligus dari file teks")
     p_bulk.add_argument("file", help="Path ke file teks daftar nama (lihat contoh: nama_list.txt)")
     p_bulk.set_defaults(func=cmd_bulk)
+
+    p_export = sub.add_parser("export-json", help="Cetak semua PIN sebagai JSON untuk env var PINS_JSON (Vercel dsb)")
+    p_export.set_defaults(func=cmd_export_json)
 
     args = parser.parse_args()
     args.func(args)

@@ -93,12 +93,60 @@ Catatan: paket gratis Render "tidur" kalau tidak ada yang akses beberapa
 menit, jadi request pertama setelah lama nganggur agak lambat (~30 detik).
 Normal untuk paket gratis.
 
-## Ubah daftar minggu
+## 4b. Deploy alternatif: Vercel
 
-Default-nya sudah di-hardcode di `app.py` (`DEFAULT_TABS`): Week 1–6 +
-Yang Bakal Cair, sesuai nama tab di spreadsheet kamu sekarang. Kalau nanti
-ada minggu baru atau nama tab berubah, cukup ubah `SHEET_TABS` di `.env`
-tanpa perlu edit kode — formatnya `Label|Nama Tab Di Sheet` dipisah `;`.
+Vercel **tidak punya disk permanen** dan **tidak bisa upload file rahasia**
+seperti Render — jadi dua hal itu perlu lewat environment variable, bukan
+file. App ini sudah mendukung mode ini otomatis (baca dari env var kalau
+ada, kalau tidak baru fallback ke file/sqlite seperti biasa).
+
+1. Push folder ini ke repo GitHub (`service_account.json` dan `users.db`
+   memang tidak akan ikut — sesuai `.gitignore`, itu sengaja).
+2. Di [vercel.com](https://vercel.com), New Project → import repo ini.
+   **Pastikan Framework Preset di-set ke "Other"**, BUKAN Next.js — ini
+   penyebab paling umum error saat import.
+3. Generate isi `PINS_JSON` dari PIN yang sudah ada:
+   ```bash
+   python manage_pins.py export-json
+   ```
+   Copy baris JSON yang dicetak (bukan baris keterangan jumlah user di
+   bawahnya, itu cuma info).
+4. Di Vercel → Project Settings → **Environment Variables**, tambahkan:
+   - `SPREADSHEET_ID` — sama seperti di `.env`
+   - `SECRET_KEY` — string acak baru, jangan pakai yang sama dengan Render
+   - `SERVICE_ACCOUNT_JSON` — **seluruh isi** file `service_account.json`
+     kamu, paste apa adanya (satu baris utuh)
+   - `PINS_JSON` — hasil `manage_pins.py export-json` di langkah 3
+   - `AUTO_DETECT_WEEKS`, `SHEET_EXTRA_TABS`, `CACHE_SECONDS` — opsional,
+     sama seperti `.env.example`
+5. Deploy. Vercel kasih URL publik `https://nama-app.vercel.app`.
+
+**Penting:** `PINS_JSON` itu snapshot, bukan live seperti sqlite. Tambah
+PIN baru lewat `manage_pins.py` di komputer sendiri → jalankan
+`export-json` lagi → update env var-nya manual di dashboard Vercel →
+redeploy. Tidak otomatis sinkron seperti di Render.
+
+## Tab minggu baru — otomatis, tidak perlu apa-apa
+
+Default-nya (`AUTO_DETECT_WEEKS=true` di `.env`), app **otomatis mendeteksi**
+semua tab yang cocok pola nama `BEYOND (Week <angka>)` setiap kali cache-nya
+kedaluwarsa (default 60 detik, atur lewat `CACHE_SECONDS`). Jadi begitu kamu
+buat tab baru di Google Sheets (`BEYOND (Week 7)`, `Week 8`, dst — via klik
+kanan "Duplicate" tab lama seperti biasa), dashboard **langsung ikut
+menampilkannya** tanpa perlu edit `.env`, edit kode, atau restart app.
+
+Urutannya otomatis diurutkan dari angka minggu terkecil ke terbesar, dan tab
+"Yang Bakal Cair" selalu ditaruh paling akhir (diatur lewat `SHEET_EXTRA_TABS`
+di `.env`, defaultnya sudah pas).
+
+**Kalau suatu saat butuh kontrol manual** (misal nama tab minggu tidak
+mengikuti pola itu lagi, atau mau urutan/label custom): isi `SHEET_TABS` di
+`.env` dengan daftar eksplisit — begitu diisi, auto-detect otomatis mati dan
+app pakai persis daftar itu:
+
+```
+SHEET_TABS=Week 1|BEYOND (Week 1);Week 2|BEYOND (Week 2);Yang Bakal Cair|Yang Bakal Cair
+```
 
 ## Keamanan & catatan tambahan
 
