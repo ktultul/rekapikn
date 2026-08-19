@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap {{ display_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% macro pct_ring(value_str) %}
+  {% set pv = value_str|pctnum %}
+  {% set has_val = value_str and value_str.strip() not in ['', '-', '-%'] %}
+  <svg viewBox="0 0 36 36" class="pct-ring">
+    <path class="pct-ring-bg"
+      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+    <path class="pct-ring-fill" style="--pct-offset: {{ 100 - pv }};"
+      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+    <text x="18" y="20.9" class="pct-ring-text"{% if has_val %} data-target="{{ pv }}"{% endif %}>{{ value_str }}</text>
+  </svg>
+{% endmacro %}
+  <div class="sheet">
+    <div class="sheet-top">
+      <a class="logout-link" href="{{ url_for('logout') }}">KELUAR</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <img src="{{ url_for('static', filename='logo.gif') }}" alt="Logo" class="brand-logo-dash">
+
+    <div class="box box-nick">
+      <span class="box-label">Nick Name</span>
+      <span class="box-text big">{{ display_name }}</span>
+    </div>
+
+    {% if load_error %}
+      <div class="flash">{{ load_error }}</div>
+    {% elif weeks %}
+
+      <div class="dots">
+        {% for w in weeks %}
+          <button type="button" class="dot-item{% if loop.first %} active{% endif %}" data-week="{{ loop.index0 }}">{{ w.label }}</button>
+        {% endfor %}
+      </div>
+
+      {% for w in weeks %}
+      <div class="week-panel" data-week="{{ loop.index0 }}" {% if not loop.first %}style="display:none;"{% endif %}>
+
+        <div class="box box-week status-{{ w.status }}">
+          <span class="box-text">{{ w.label }}</span>
+          <span class="status-badge status-{{ w.status }}">{{ w.status_label }}</span>
+        </div>
+
+        {% if w.error %}
+          <div class="box"><span class="empty-note">{{ w.error }}</span></div>
+        {% elif w.card %}
+        <div class="grid-2">
+          <div class="box box-thick{% if w.card.pb_elan_pct %} box-with-ring{% endif %}">
+            <div class="box-main">
+              <span class="box-label">PB Elan</span>
+              <span class="box-text">{{ w.card.pb_elan or "-" }}</span>
+            </div>
+            {% if w.card.pb_elan_pct %}{{ pct_ring(w.card.pb_elan_pct) }}{% endif %}
+          </div>
+          <div class="box{% if w.card.pb_cm_pct %} box-with-ring{% endif %}">
+            <div class="box-main">
+              <span class="box-label">PB CM</span>
+              <span class="box-text">{{ w.card.pb_cm or "-" }}</span>
+            </div>
+            {% if w.card.pb_cm_pct %}{{ pct_ring(w.card.pb_cm_pct) }}{% endif %}
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="box{% if w.card.pb_markas_pct %} box-with-ring{% endif %}">
+            <div class="box-main">
+              <span class="box-label">PB Markas</span>
+              <span class="box-text">{{ w.card.pb_markas or "-" }}</span>
+            </div>
+            {% if w.card.pb_markas_pct %}{{ pct_ring(w.card.pb_markas_pct) }}{% endif %}
+          </div>
+          <div class="box">
+            <span class="box-label">Admin</span>
+            <span class="box-text">{{ w.card.admin or "-" }}</span>
+          </div>
+        </div>
+
+        <div class="box box-total{% if w.card.total_pct %} box-with-ring{% endif %}">
+          <div class="box-main">
+            <span class="box-label">Total</span>
+            <span class="box-text">{{ w.card.total or "-" }}</span>
+          </div>
+          {% if w.card.total_pct %}{{ pct_ring(w.card.total_pct) }}{% endif %}
+        </div>
+
+        <div class="box box-total box-final{% if w.card.final_pct %} box-with-ring{% endif %}">
+          <div class="box-main">
+            <span class="box-label">Final</span>
+            <span class="box-text big">{{ w.card.final or "-" }}</span>
+          </div>
+          {% if w.card.final_pct %}{{ pct_ring(w.card.final_pct) }}{% endif %}
+        </div>
+
+        {% if w.card.rekap %}
+        <div class="box box-alasan">
+          <span class="box-label">Rekap Sebelumnya Yang Belum Cair</span>
+          <span class="box-text">{{ w.card.rekap }}</span>
+        </div>
+        {% endif %}
+
+        {% if w.card.alasan %}
+        <div class="box box-alasan box-warn">
+          <span class="box-label">Alasan Tidak Gajian</span>
+          <span class="box-text">{{ w.card.alasan }}</span>
+        </div>
+        {% endif %}
+
+        {% else %}
+          <div class="box"><span class="empty-note">Belum ada data yang cocok untuk kamu di minggu ini.</span></div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+
+      <div class="nav-row">
+        <button type="button" class="nav-btn" id="prevBtn">&#8592;</button>
+        <span class="nav-label" id="navLabel"></span>
+        <button type="button" class="nav-btn" id="nextBtn">&#8594;</button>
+      </div>
+
+    {% else %}
+      <div class="box"><span class="empty-note">Tidak ada data untuk ditampilkan.</span></div>
+    {% endif %}
+  </div>
+
+  <script>
+    (function(){
+      var panels = Array.prototype.slice.call(document.querySelectorAll('.week-panel'));
+      var dots = Array.prototype.slice.call(document.querySelectorAll('.dot-item'));
+      var prevBtn = document.getElementById('prevBtn');
+      var nextBtn = document.getElementById('nextBtn');
+      var navLabel = document.getElementById('navLabel');
+      var current = 0;
+
+      function animateRings(panel){
+        if (!panel) return;
+        var texts = panel.querySelectorAll('.pct-ring-text[data-target]');
+        texts.forEach(function(t){
+          var target = parseFloat(t.getAttribute('data-target'));
+          if (isNaN(target)) return;
+          var start = performance.now();
+          var dur = 1100;
+          function tick(now){
+            var p = Math.min(1, (now - start) / dur);
+            var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic, senada sama animasi ring CSS-nya
+            var val = target * eased;
+            t.textContent = val.toFixed(2).replace('.', ',') + '%';
+            if (p < 1) requestAnimationFrame(tick);
+            else t.textContent = target.toFixed(2).replace('.', ',') + '%';
+          }
+          requestAnimationFrame(tick);
+        });
+
+        // Retrigger animasi CSS ring-nya (biar keisi ulang tiap pindah slide,
+        // bukan cuma sekali pas halaman pertama dibuka).
+        var fills = panel.querySelectorAll('.pct-ring-fill');
+        fills.forEach(function(el){
+          el.style.animation = 'none';
+          void el.offsetWidth; // paksa reflow biar animasi restart
+          el.style.animation = '';
+        });
+      }
+
+      function show(i){
+        if (i < 0 || i >= panels.length) return;
+        current = i;
+        panels.forEach(function(p, idx){ p.style.display = (idx === i) ? '' : 'none'; });
+        dots.forEach(function(d, idx){ d.classList.toggle('active', idx === i); });
+        if (prevBtn) prevBtn.disabled = (i === 0);
+        if (nextBtn) nextBtn.disabled = (i === panels.length - 1);
+        if (navLabel) navLabel.textContent = (i+1) + ' / ' + panels.length;
+        animateRings(panels[i]);
+      }
+
+      dots.forEach(function(d, idx){ d.addEventListener('click', function(){ show(idx); }); });
+      if (prevBtn) prevBtn.addEventListener('click', function(){ show(current - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', function(){ show(current + 1); });
+
+      var touchStartX = null;
+      var sheet = document.querySelector('.sheet');
+      if (sheet){
+        sheet.addEventListener('touchstart', function(e){ touchStartX = e.touches[0].clientX; }, {passive:true});
+        sheet.addEventListener('touchend', function(e){
+          if (touchStartX === null) return;
+          var dx = e.changedTouches[0].clientX - touchStartX;
+          if (Math.abs(dx) > 50){ show(current + (dx < 0 ? 1 : -1)); }
+          touchStartX = null;
+        }, {passive:true});
+      }
+
+      document.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowLeft') show(current - 1);
+        if (e.key === 'ArrowRight') show(current + 1);
+      });
+
+      if (panels.length) show(0);
+    })();
+  </script>
+</body>
+</html>
