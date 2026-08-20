@@ -388,3 +388,148 @@ body {
   .grid-2 { gap: 10px; }
   .box { padding: 12px; }
 }
+
+/* ============================================================
+   VERSI DESKTOP — semua di bawah ini HANYA aktif di layar lebar
+   (min-width: 860px). Tampilan mobile di atas TIDAK disentuh sama
+   sekali, jadi HP tetap persis seperti sebelumnya.
+   ============================================================ */
+@media (min-width: 860px) {
+
+  body {
+    padding: 48px 24px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .sheet {
+    max-width: 880px;
+    padding: 8px 48px 52px;
+    border-radius: 24px;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.55);
+  }
+
+  /* Header (Keluar) & Nick Name jadi satu baris sejajar, lebih lega */
+  .sheet-top {
+    padding-top: 28px;
+    margin-bottom: 0;
+  }
+  .sheet .logout-link {
+    padding: 8px 16px;
+    font-size: 11.5px;
+    transition: all 0.15s ease;
+  }
+  .sheet .logout-link:hover {
+    background: #14171c;
+    color: #f7f4ec;
+  }
+
+  .box-nick {
+    margin-top: -34px; /* naik supaya sejajar sama tombol Keluar di sheet-top */
+    margin-bottom: 24px;
+    padding: 18px 22px;
+    border-width: 2.5px;
+  }
+  .box-nick .box-text.big { font-size: 24px; }
+
+  /* Logo lebih besar & proporsional di layar lebar */
+  .brand-logo-dash {
+    width: 168px;
+    top: -96px;
+    left: -78px;
+  }
+
+  /* Tab minggu jadi lebih mirip tab bar modern */
+  .dots {
+    gap: 8px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1.5px solid #ece5d3;
+  }
+  .dot-item {
+    font-size: 11.5px;
+    padding: 7px 16px;
+    border-width: 1.5px;
+    transition: all 0.15s ease;
+  }
+  .dot-item:hover {
+    border-color: var(--gold);
+    color: #7a5a1e;
+    transform: translateY(-1px);
+  }
+  .dot-item.active {
+    box-shadow: 0 4px 14px -4px rgba(201,162,75,0.5);
+  }
+
+  .box-week {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .box-week .box-text { font-size: 16px; }
+
+  /* Boxes lebih lega + efek hover halus, tanpa ubah struktur */
+  .box {
+    padding: 18px 20px;
+    border-radius: 8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -12px rgba(20,23,28,0.25);
+  }
+  .box-label { font-size: 11px; }
+  .box-text { font-size: 16.5px; }
+  .box-text.big { font-size: 23px; }
+
+  /* Trik display:contents: dua blok .grid-2 (Elan+CM, Markas+Admin)
+     "dilebur" jadi item langsung dari grid 4-kolom milik .week-panel,
+     supaya keempatnya sejajar dalam satu baris di desktop — tanpa
+     perlu ubah HTML sama sekali. */
+  .week-panel {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px 20px;
+    align-items: stretch;
+  }
+  .grid-2 {
+    display: contents;
+  }
+  .grid-2 .box {
+    margin-bottom: 0;
+  }
+  .week-panel > .box-week,
+  .week-panel > .box-alasan {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+  .week-panel > .box-total {
+    grid-column: span 2;
+    margin-bottom: 0;
+  }
+  .week-panel > .empty-note {
+    grid-column: 1 / -1;
+  }
+
+  .box-final .box-text.big { font-size: 27px; }
+  .pct-ring { width: 64px; height: 64px; }
+  .box-final .pct-ring { width: 74px; height: 74px; }
+
+  .nav-row {
+    margin-top: 26px;
+  }
+  .nav-btn {
+    width: 42px;
+    height: 42px;
+    transition: all 0.15s ease;
+  }
+  .nav-btn:not(:disabled):hover {
+    background: #14171c;
+    color: #f7f4ec;
+    transform: scale(1.06);
+  }
+}
+
+@media (min-width: 1100px) {
+  .sheet { max-width: 980px; }
+}
+
