@@ -533,3 +533,86 @@ body {
   .sheet { max-width: 980px; }
 }
 
+/* ============================================================
+   Tambahan lanjutan: pindah tab minggu (dots) ke paling bawah,
+   perlebar lembar lagi, kecilkan font khusus kolom stat 4-kolom
+   supaya "nilai / total keseluruhan" tidak turun ke baris baru.
+   Semua ATURAN BARU di sini otomatis MENANG atas rule sebelumnya
+   (selector lebih spesifik / urutan lebih akhir) — tidak ada yang
+   dihapus, jadi tetap aman.
+   ============================================================ */
+@media (min-width: 860px) {
+
+  /* --- pindahkan tab Week 1..8 ke paling bawah, di bawah tombol panah --- */
+  .sheet {
+    display: flex;
+    flex-direction: column;
+  }
+  .dots {
+    order: 99;
+    margin-top: 26px;
+    margin-bottom: 0;
+    padding-top: 18px;
+    padding-bottom: 0;
+    border-bottom: none;
+    border-top: 1.5px solid #ece5d3;
+    justify-content: center;
+  }
+
+  /* --- lembar lebih lebar lagi --- */
+  .sheet {
+    max-width: 1080px;
+    padding: 8px 52px 52px;
+  }
+
+  /* --- kolom 4-kotak (PB Elan/CM/Markas/Admin): font & ring dikecilkan,
+     spasi dipadatkan, dan dipaksa satu baris (tidak wrap) --- */
+  .grid-2 .box {
+    padding: 14px 14px;
+  }
+  .grid-2 .box-with-ring {
+    gap: 6px;
+  }
+  .grid-2 .pct-ring {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+  .grid-2 .pct-ring-text {
+    font-size: 8px;
+  }
+  .grid-2 .box-text {
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .grid-2 .box-main {
+    overflow: hidden;
+  }
+
+  /* Total & Final (kartu besar 2-kolom): tetap lega, tapi tetap dipaksa
+     satu baris juga karena lembar sekarang jauh lebih lebar */
+  .week-panel > .box-total .box-text,
+  .week-panel > .box-total .box-text.big {
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1300px) {
+  .sheet { max-width: 1180px; }
+  .grid-2 .box-text { font-size: 15px; }
+  .grid-2 .pct-ring { width: 44px; height: 44px; }
+  .grid-2 .pct-ring-text { font-size: 8.8px; }
+}
+
+/* ============================================================
+   FIX: trik "margin-top: -34px" di .box-nick (dimaksudkan biar
+   sejajar visual sama tombol Keluar) ternyata malah bikin kotak
+   Nick Name menimpa/menutupi tombol Keluar. Dibatalkan di sini,
+   balik ke spacing normal supaya tombol Keluar selalu kelihatan.
+   ============================================================ */
+@media (min-width: 860px) {
+  .box-nick {
+    margin-top: 4px;
+  }
+}
+
