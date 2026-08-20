@@ -206,6 +206,12 @@ body {
   font-size: 19px;
 }
 
+.box-text-gt {
+  font-size: 0.78em;
+  font-weight: 500;
+  color: #8a8270;
+}
+
 .box-main {
   display: flex;
   flex-direction: column;
