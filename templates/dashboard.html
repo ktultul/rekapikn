@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+{% macro with_grand_total(value, gt_value) %}
+  {{ value or "-" }}{% if gt_value and gt_value.strip() and gt_value.strip() != "-" %} <span class="box-text-gt">/ {{ gt_value }}</span>{% endif %}
+{% endmacro %}
 {% macro pct_ring(value_str) %}
   {% set pv = value_str|pctnum %}
   {% set has_val = value_str and value_str.strip() not in ['', '-', '-%'] %}
@@ -63,14 +66,14 @@
           <div class="box box-thick{% if w.card.pb_elan_pct %} box-with-ring{% endif %}">
             <div class="box-main">
               <span class="box-label">PB Elan</span>
-              <span class="box-text">{{ w.card.pb_elan or "-" }}</span>
+              <span class="box-text">{{ with_grand_total(w.card.pb_elan, w.card.grand_total.pb_elan) }}</span>
             </div>
             {% if w.card.pb_elan_pct %}{{ pct_ring(w.card.pb_elan_pct) }}{% endif %}
           </div>
           <div class="box{% if w.card.pb_cm_pct %} box-with-ring{% endif %}">
             <div class="box-main">
               <span class="box-label">PB CM</span>
-              <span class="box-text">{{ w.card.pb_cm or "-" }}</span>
+              <span class="box-text">{{ with_grand_total(w.card.pb_cm, w.card.grand_total.pb_cm) }}</span>
             </div>
             {% if w.card.pb_cm_pct %}{{ pct_ring(w.card.pb_cm_pct) }}{% endif %}
           </div>
@@ -80,7 +83,7 @@
           <div class="box{% if w.card.pb_markas_pct %} box-with-ring{% endif %}">
             <div class="box-main">
               <span class="box-label">PB Markas</span>
-              <span class="box-text">{{ w.card.pb_markas or "-" }}</span>
+              <span class="box-text">{{ with_grand_total(w.card.pb_markas, w.card.grand_total.pb_markas) }}</span>
             </div>
             {% if w.card.pb_markas_pct %}{{ pct_ring(w.card.pb_markas_pct) }}{% endif %}
           </div>
@@ -93,7 +96,7 @@
         <div class="box box-total{% if w.card.total_pct %} box-with-ring{% endif %}">
           <div class="box-main">
             <span class="box-label">Total</span>
-            <span class="box-text">{{ w.card.total or "-" }}</span>
+            <span class="box-text">{{ with_grand_total(w.card.total, w.card.grand_total.total) }}</span>
           </div>
           {% if w.card.total_pct %}{{ pct_ring(w.card.total_pct) }}{% endif %}
         </div>
@@ -101,7 +104,7 @@
         <div class="box box-total box-final{% if w.card.final_pct %} box-with-ring{% endif %}">
           <div class="box-main">
             <span class="box-label">Final</span>
-            <span class="box-text big">{{ w.card.final or "-" }}</span>
+            <span class="box-text big">{{ with_grand_total(w.card.final, w.card.grand_total.final) }}</span>
           </div>
           {% if w.card.final_pct %}{{ pct_ring(w.card.final_pct) }}{% endif %}
         </div>
