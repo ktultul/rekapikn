@@ -132,6 +132,16 @@ PCT_COL_FINAL = col_letter_to_index("P")
 # teksnya bisa jadi sama persis ("PB ELAN" dst muncul dua kali di baris itu).
 MAIN_TABLE_END_COL = col_letter_to_index("K") + 1  # exclusive bound
 
+# Baris "Total Keseluruhan" tiap tab dikonfirmasi selalu ada di baris 67
+# (posisi tetap, sama di semua tab minggu), di kolom D/E/F/H/I — dipakai
+# untuk tampilan "punya sendiri / total keseluruhan" di dashboard.
+GRAND_TOTAL_ROW = 67  # 1-indexed, sesuai penomoran baris di Google Sheets
+GRAND_TOTAL_COL_ELAN = col_letter_to_index("D")
+GRAND_TOTAL_COL_CM = col_letter_to_index("E")
+GRAND_TOTAL_COL_MARKAS = col_letter_to_index("F")
+GRAND_TOTAL_COL_TOTAL = col_letter_to_index("H")
+GRAND_TOTAL_COL_FINAL = col_letter_to_index("I")
+
 
 def map_columns(header_row, cont_row):
     """Cari index kolom berdasar kata kunci di baris header (+ baris
@@ -298,6 +308,28 @@ def parse_tab(rows, color_rows=None):
             "final_pct": get_col(row, PCT_COL_FINAL),
         })
     return records
+
+
+def parse_grand_total(rows):
+    """Ambil angka 'Total Keseluruhan' di baris 67 (posisi tetap, sama di
+    semua tab) pada kolom D/E/F/H/I. Dipakai terpisah dari parse_tab() /
+    map_columns() karena posisinya fixed by row-number, bukan dicari lewat
+    teks header."""
+    idx = GRAND_TOTAL_ROW - 1
+    if idx >= len(rows):
+        return {}
+    row = rows[idx]
+
+    def get_col(i):
+        return (row[i] if i < len(row) else "") or ""
+
+    return {
+        "pb_elan": get_col(GRAND_TOTAL_COL_ELAN),
+        "pb_cm": get_col(GRAND_TOTAL_COL_CM),
+        "pb_markas": get_col(GRAND_TOTAL_COL_MARKAS),
+        "total": get_col(GRAND_TOTAL_COL_TOTAL),
+        "final": get_col(GRAND_TOTAL_COL_FINAL),
+    }
 
 
 STATUS_LABEL = {
@@ -532,28 +564,35 @@ def get_sheet_grid(sh, sheet_title):
 
 
 def get_sheet_records(sheet_title):
-    """Ambil semua baris sebuah tab (sudah di-parse), dengan cache singkat
-    supaya tidak boros kuota Google Sheets API saat banyak user login bersamaan."""
+    """Ambil semua baris sebuah tab (sudah di-parse) + total keseluruhannya
+    (baris 67), dengan cache singkat supaya tidak boros kuota Google Sheets
+    API saat banyak user login bersamaan. Return (records, grand_total)."""
     now = time.time()
     cached = _cache.get(sheet_title)
     if cached is not None and (now - cached["ts"]) < CACHE_SECONDS:
-        return cached["data"]
+        return cached["data"], cached["totals"]
 
     client = get_client()
     sh = client.open_by_key(SPREADSHEET_ID)
     values, colors = get_sheet_grid(sh, sheet_title)
     records = parse_tab(values, colors)
-    _cache[sheet_title] = {"data": records, "ts": now}
-    return records
+    totals = parse_grand_total(values)
+    _cache[sheet_title] = {"data": records, "totals": totals, "ts": now}
+    return records, totals
 
 
 def find_row_for_key(sheet_title, sheet_key):
-    records = get_sheet_records(sheet_title)
+    records, _ = get_sheet_records(sheet_title)
     target = normalize(sheet_key)
     for row in records:
         if row["norm"] == target:
             return row
     return None
+
+
+def get_grand_total(sheet_title):
+    _, totals = get_sheet_records(sheet_title)
+    return totals
 
 
 def build_weeks_for_user(sheet_key):
@@ -577,8 +616,12 @@ def build_weeks_for_user(sheet_key):
         card = None
         status = "none"
         if row is not None:
-            card = row
+            card = dict(row)  # copy: row berasal dari cache bareng, jangan ditulisi langsung
             status = card.get("final_status", "belum")
+            try:
+                card["grand_total"] = get_grand_total(title)
+            except Exception:
+                card["grand_total"] = {}
 
         weeks.append({
             "label": label,
