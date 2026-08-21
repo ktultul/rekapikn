@@ -7,24 +7,63 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-{% macro with_grand_total(value, gt_value) %}
-  {{ value or "-" }}{% if gt_value and gt_value.strip() and gt_value.strip() != "-" %} <span class="box-text-gt">/ {{ gt_value }}</span>{% endif %}
+{% macro pct_badge(value) %}
+  {% if value and value.strip() and value.strip() not in ['-', '-%'] %}<span class="pct-badge">{{ value }}</span>{% endif %}
 {% endmacro %}
-{% macro pct_ring(value_str) %}
-  {% set pv = value_str|pctnum %}
-  {% set has_val = value_str and value_str.strip() not in ['', '-', '-%'] %}
-  <svg viewBox="0 0 36 36" class="pct-ring">
-    <path class="pct-ring-bg"
-      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-    <path class="pct-ring-fill" style="--pct-offset: {{ 100 - pv }};"
-      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-    <text x="18" y="20.9" class="pct-ring-text"{% if has_val %} data-target="{{ pv }}"{% endif %}>{{ value_str }}</text>
-  </svg>
+{% macro breakdown_total(card) %}
+  {% if card %}
+    {% set pv_markas = card.pb_markas_pct|pctnum %}
+    {% set pv_cm = card.pb_cm_pct|pctnum %}
+    {% set pv_elan = card.pb_elan_pct|pctnum %}
+    {% set pv_total = card.total_pct|pctnum %}
+    {% set off_markas = 0 %}
+    {% set off_total = pv_markas %}
+    {% set off_elan = pv_markas + pv_total %}
+    {% set off_cm = pv_markas + pv_total + pv_elan %}
+    <div class="breakdown-body">
+      <svg viewBox="0 0 36 36" class="donut">
+        <circle class="donut-bg" cx="18" cy="18" r="15.9155"></circle>
+        <g transform="rotate(-90 18 18)">
+          {% if pv_markas > 0 %}<circle class="donut-seg" style="stroke: var(--chart-markas);" stroke-dasharray="{{ pv_markas }} {{ 100 - pv_markas }}" stroke-dashoffset="{{ -off_markas }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
+          {% if pv_total > 0 %}<circle class="donut-seg" style="stroke: var(--chart-total);" stroke-dasharray="{{ pv_total }} {{ 100 - pv_total }}" stroke-dashoffset="{{ -off_total }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
+          {% if pv_elan > 0 %}<circle class="donut-seg" style="stroke: var(--chart-elan);" stroke-dasharray="{{ pv_elan }} {{ 100 - pv_elan }}" stroke-dashoffset="{{ -off_elan }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
+          {% if pv_cm > 0 %}<circle class="donut-seg" style="stroke: var(--chart-cm);" stroke-dasharray="{{ pv_cm }} {{ 100 - pv_cm }}" stroke-dashoffset="{{ -off_cm }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
+        </g>
+      </svg>
+      <div class="breakdown-legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--chart-markas);"></span>
+          <div class="legend-text"><span class="legend-label">PB Markas</span><span class="legend-amount">{{ card.grand_total.pb_markas or "-" }}</span></div>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--chart-cm);"></span>
+          <div class="legend-text"><span class="legend-label">PB CM</span><span class="legend-amount">{{ card.grand_total.pb_cm or "-" }}</span></div>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--chart-elan);"></span>
+          <div class="legend-text"><span class="legend-label">PB Elan</span><span class="legend-amount">{{ card.grand_total.pb_elan or "-" }}</span></div>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--chart-total);"></span>
+          <div class="legend-text"><span class="legend-label">Total</span><span class="legend-amount">{{ card.grand_total.total or "-" }}</span></div>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--chart-final);"></span>
+          <div class="legend-text"><span class="legend-label">Final</span><span class="legend-amount">{{ card.grand_total.final or "-" }}</span></div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-note">Belum ada data breakdown untuk minggu ini.</div>
+  {% endif %}
 {% endmacro %}
   <div class="sheet">
-    <div class="sheet-top">
+
+    <div class="dash-topbar">
+      <img src="{{ url_for('static', filename='logo.gif') }}" alt="Logo" class="dash-logo">
       <a class="logout-link" href="{{ url_for('logout') }}">KELUAR</a>
     </div>
+    <h1 class="dash-title">Dashboard Rekapan</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -34,110 +73,126 @@
       {% endif %}
     {% endwith %}
 
-    <img src="{{ url_for('static', filename='logo.gif') }}" alt="Logo" class="brand-logo-dash">
-
-    <div class="box box-nick">
-      <span class="box-label">Nick Name</span>
-      <span class="box-text big">{{ display_name }}</span>
-    </div>
-
     {% if load_error %}
       <div class="flash">{{ load_error }}</div>
     {% elif weeks %}
 
-      <div class="dots">
-        {% for w in weeks %}
-          <button type="button" class="dot-item{% if loop.first %} active{% endif %}" data-week="{{ loop.index0 }}">{{ w.label }}</button>
-        {% endfor %}
-      </div>
-
       {% for w in weeks %}
       <div class="week-panel" data-week="{{ loop.index0 }}" {% if not loop.first %}style="display:none;"{% endif %}>
 
-        <div class="box box-week status-{{ w.status }}">
-          <span class="box-text">{{ w.label }}</span>
-          <span class="status-badge status-{{ w.status }}">{{ w.status_label }}</span>
-        </div>
-
         {% if w.error %}
-          <div class="box"><span class="empty-note">{{ w.error }}</span></div>
+          <div class="empty-note">{{ w.error }}</div>
         {% elif w.card %}
-        <div class="grid-2">
-          <div class="box box-thick{% if w.card.pb_elan_pct %} box-with-ring{% endif %}">
-            <div class="box-main">
-              <span class="box-label">PB Elan</span>
-              <span class="box-text">{{ with_grand_total(w.card.pb_elan, w.card.grand_total.pb_elan) }}</span>
+
+        <div class="cards-row-4">
+          <div class="info-card">
+            <div class="card-head">
+              <span class="card-label">PB Elan</span>
+              {{ pct_badge(w.card.pb_elan_pct) }}
             </div>
-            {% if w.card.pb_elan_pct %}{{ pct_ring(w.card.pb_elan_pct) }}{% endif %}
+            <span class="card-value">{{ w.card.pb_elan or "-" }}</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB ELAN</span>
           </div>
-          <div class="box{% if w.card.pb_cm_pct %} box-with-ring{% endif %}">
-            <div class="box-main">
-              <span class="box-label">PB CM</span>
-              <span class="box-text">{{ with_grand_total(w.card.pb_cm, w.card.grand_total.pb_cm) }}</span>
+          <div class="info-card">
+            <div class="card-head">
+              <span class="card-label">PB CM</span>
+              {{ pct_badge(w.card.pb_cm_pct) }}
             </div>
-            {% if w.card.pb_cm_pct %}{{ pct_ring(w.card.pb_cm_pct) }}{% endif %}
+            <span class="card-value">{{ w.card.pb_cm or "-" }}</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB CM</span>
           </div>
-        </div>
-
-        <div class="grid-2">
-          <div class="box{% if w.card.pb_markas_pct %} box-with-ring{% endif %}">
-            <div class="box-main">
-              <span class="box-label">PB Markas</span>
-              <span class="box-text">{{ with_grand_total(w.card.pb_markas, w.card.grand_total.pb_markas) }}</span>
+          <div class="info-card">
+            <div class="card-head">
+              <span class="card-label">PB Markas</span>
+              {{ pct_badge(w.card.pb_markas_pct) }}
             </div>
-            {% if w.card.pb_markas_pct %}{{ pct_ring(w.card.pb_markas_pct) }}{% endif %}
+            <span class="card-value">{{ w.card.pb_markas or "-" }}</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB MARKAS</span>
           </div>
-          <div class="box">
-            <span class="box-label">Admin</span>
-            <span class="box-text">{{ w.card.admin or "-" }}</span>
+          <div class="info-card">
+            <div class="card-head">
+              <span class="card-label">Admin</span>
+            </div>
+            <span class="card-value">{{ w.card.admin or "-" }}</span>
           </div>
         </div>
 
-        <div class="box box-total{% if w.card.total_pct %} box-with-ring{% endif %}">
-          <div class="box-main">
-            <span class="box-label">Total</span>
-            <span class="box-text">{{ with_grand_total(w.card.total, w.card.grand_total.total) }}</span>
+        <div class="dash-columns">
+          <div class="dash-left">
+            <div class="total-week-grid">
+              <div class="box-total">
+                <div class="card-head">
+                  <span class="card-label">Total</span>
+                  {{ pct_badge(w.card.total_pct) }}
+                </div>
+                <span class="card-value">{{ w.card.total or "-" }}</span>
+              </div>
+              <div class="box-final">
+                <div class="card-head">
+                  <span class="card-label">Final</span>
+                </div>
+                <span class="card-value">{{ w.card.final or "-" }}</span>
+              </div>
+              <div class="box-week status-{{ w.status }}">
+                <span class="week-label">{{ w.label }}</span>
+                <span class="status-badge">{{ w.status_label }}</span>
+              </div>
+            </div>
+
+            {% if w.card.rekap %}
+            <div class="box-note box-rekap">
+              <span class="note-label">Rekap Sebelumnya Yang Belum Cair</span>
+              <span class="note-text">{{ w.card.rekap }}</span>
+            </div>
+            {% endif %}
+
+            {% if w.card.alasan %}
+            <div class="box-note box-alasan">
+              <span class="note-label">Alasan Tidak Gajian</span>
+              <span class="note-text">{{ w.card.alasan }}</span>
+            </div>
+            {% endif %}
           </div>
-          {% if w.card.total_pct %}{{ pct_ring(w.card.total_pct) }}{% endif %}
-        </div>
 
-        <div class="box box-total box-final{% if w.card.final_pct %} box-with-ring{% endif %}">
-          <div class="box-main">
-            <span class="box-label">Final</span>
-            <span class="box-text big">{{ with_grand_total(w.card.final, w.card.grand_total.final) }}</span>
+          <div class="dash-right">
+            <div class="breakdown-box">
+              <span class="breakdown-title">Breakdown Total</span>
+              {{ breakdown_total(w.card) }}
+            </div>
           </div>
-          {% if w.card.final_pct %}{{ pct_ring(w.card.final_pct) }}{% endif %}
         </div>
-
-        {% if w.card.rekap %}
-        <div class="box box-alasan">
-          <span class="box-label">Rekap Sebelumnya Yang Belum Cair</span>
-          <span class="box-text">{{ w.card.rekap }}</span>
-        </div>
-        {% endif %}
-
-        {% if w.card.alasan %}
-        <div class="box box-alasan box-warn">
-          <span class="box-label">Alasan Tidak Gajian</span>
-          <span class="box-text">{{ w.card.alasan }}</span>
-        </div>
-        {% endif %}
 
         {% else %}
-          <div class="box"><span class="empty-note">Belum ada data yang cocok untuk kamu di minggu ini.</span></div>
+          <div class="empty-note">Belum ada data yang cocok untuk kamu di minggu ini.</div>
         {% endif %}
 
       </div>
       {% endfor %}
 
+      <div class="dash-footer">
+        <div class="nick-name">
+          <span class="nick-label">Nick Name :</span>
+          <span class="nick-value">{{ display_name }}</span>
+        </div>
+        <div class="week-scroller">
+          <button type="button" class="week-scroller-arrow" id="scrollPrev">&#8592;</button>
+          <div class="week-scroller-track" id="weekTrack">
+            {% for w in weeks|reverse %}
+              <button type="button" class="dot-item{% if loop.last %} active{% endif %}" data-week="{{ (weeks|length - 1) - loop.index0 }}">{{ w.label }}</button>
+            {% endfor %}
+          </div>
+          <button type="button" class="week-scroller-arrow" id="scrollNext">&#8594;</button>
+        </div>
+      </div>
+
       <div class="nav-row">
-        <button type="button" class="nav-btn" id="prevBtn">&#8592;</button>
-        <span class="nav-label" id="navLabel"></span>
-        <button type="button" class="nav-btn" id="nextBtn">&#8594;</button>
+        <button type="button" class="nav-arrow" id="prevBtn">&#8592;</button>
+        <span class="nav-circle" id="navCircle">1</span>
+        <button type="button" class="nav-arrow" id="nextBtn">&#8594;</button>
       </div>
 
     {% else %}
-      <div class="box"><span class="empty-note">Tidak ada data untuk ditampilkan.</span></div>
+      <div class="empty-note">Tidak ada data untuk ditampilkan.</div>
     {% endif %}
   </div>
 
@@ -147,52 +202,27 @@
       var dots = Array.prototype.slice.call(document.querySelectorAll('.dot-item'));
       var prevBtn = document.getElementById('prevBtn');
       var nextBtn = document.getElementById('nextBtn');
-      var navLabel = document.getElementById('navLabel');
+      var navCircle = document.getElementById('navCircle');
+      var scrollPrev = document.getElementById('scrollPrev');
+      var scrollNext = document.getElementById('scrollNext');
+      var weekTrack = document.getElementById('weekTrack');
       var current = 0;
-
-      function animateRings(panel){
-        if (!panel) return;
-        var texts = panel.querySelectorAll('.pct-ring-text[data-target]');
-        texts.forEach(function(t){
-          var target = parseFloat(t.getAttribute('data-target'));
-          if (isNaN(target)) return;
-          var start = performance.now();
-          var dur = 1100;
-          function tick(now){
-            var p = Math.min(1, (now - start) / dur);
-            var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic, senada sama animasi ring CSS-nya
-            var val = target * eased;
-            t.textContent = val.toFixed(2).replace('.', ',') + '%';
-            if (p < 1) requestAnimationFrame(tick);
-            else t.textContent = target.toFixed(2).replace('.', ',') + '%';
-          }
-          requestAnimationFrame(tick);
-        });
-
-        // Retrigger animasi CSS ring-nya (biar keisi ulang tiap pindah slide,
-        // bukan cuma sekali pas halaman pertama dibuka).
-        var fills = panel.querySelectorAll('.pct-ring-fill');
-        fills.forEach(function(el){
-          el.style.animation = 'none';
-          void el.offsetWidth; // paksa reflow biar animasi restart
-          el.style.animation = '';
-        });
-      }
 
       function show(i){
         if (i < 0 || i >= panels.length) return;
         current = i;
         panels.forEach(function(p, idx){ p.style.display = (idx === i) ? '' : 'none'; });
-        dots.forEach(function(d, idx){ d.classList.toggle('active', idx === i); });
+        dots.forEach(function(d){ d.classList.toggle('active', parseInt(d.dataset.week, 10) === i); });
         if (prevBtn) prevBtn.disabled = (i === 0);
         if (nextBtn) nextBtn.disabled = (i === panels.length - 1);
-        if (navLabel) navLabel.textContent = (i+1) + ' / ' + panels.length;
-        animateRings(panels[i]);
+        if (navCircle) navCircle.textContent = (i + 1);
       }
 
-      dots.forEach(function(d, idx){ d.addEventListener('click', function(){ show(idx); }); });
+      dots.forEach(function(d){ d.addEventListener('click', function(){ show(parseInt(d.dataset.week, 10)); }); });
       if (prevBtn) prevBtn.addEventListener('click', function(){ show(current - 1); });
       if (nextBtn) nextBtn.addEventListener('click', function(){ show(current + 1); });
+      if (scrollPrev && weekTrack) scrollPrev.addEventListener('click', function(){ weekTrack.scrollBy({ left: -140, behavior: 'smooth' }); });
+      if (scrollNext && weekTrack) scrollNext.addEventListener('click', function(){ weekTrack.scrollBy({ left: 140, behavior: 'smooth' }); });
 
       var touchStartX = null;
       var sheet = document.querySelector('.sheet');
