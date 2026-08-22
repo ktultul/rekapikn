@@ -282,6 +282,18 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
   line-height: 1.45;
 }
 
+.desc-link {
+  color: var(--red-bright);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,77,61,0.45);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.desc-link:hover {
+  color: #fff;
+  border-color: #fff;
+}
+
 /* ---------- two-column area: total/final/week  |  breakdown ---------- */
 .dash-columns {
   display: block;
@@ -590,6 +602,82 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
   line-height: 1.6;
   font-family: 'Inter', sans-serif;
   padding: 16px 4px;
+}
+
+/* ---------- loading screen ---------- */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(229,52,42,0.18) 0%, transparent 55%),
+    var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s ease;
+}
+.loading-screen.ld-hide { opacity: 0; pointer-events: none; }
+
+.loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 0 24px;
+}
+
+.loading-logo {
+  width: 84px;
+  height: auto;
+  opacity: 0;
+  animation: ldLogoIn 0.5s ease forwards 0.05s;
+  filter: drop-shadow(0 0 18px rgba(229,52,42,0.5));
+}
+@keyframes ldLogoIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.loading-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: clamp(26px, 7vw, 52px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+}
+.ld-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.4);
+  animation: ldLetterIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: var(--delay);
+}
+@keyframes ldLetterIn {
+  to { opacity: 1; transform: translate(0,0) rotate(0deg) scale(1); }
+}
+.ld-space { display: inline-block; width: 0.35em; }
+
+.loading-screen.ld-settled .loading-text {
+  animation: ldGlowPulse 1s ease-in-out 1;
+}
+@keyframes ldGlowPulse {
+  0% { text-shadow: 0 0 0 rgba(229,52,42,0); }
+  40% { text-shadow: 0 0 26px rgba(255,77,61,0.85), 0 0 50px rgba(229,52,42,0.5); }
+  100% { text-shadow: 0 0 0 rgba(229,52,42,0); }
+}
+
+.loading-logo.ld-pulse {
+  animation: ldPulseLoop 1.1s ease-in-out infinite;
+}
+@keyframes ldPulseLoop {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 18px rgba(229,52,42,0.5)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 30px rgba(255,77,61,0.85)); }
 }
 
 /* ---------- hover feedback (all box-like elements) ---------- */
