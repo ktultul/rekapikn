@@ -86,7 +86,7 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
 
 .brand-logo {
   display: block;
-  width: 64px;
+  width: 128px;
   height: auto;
   margin: 0 0 16px;
 }
@@ -184,7 +184,7 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
 }
 
 .dash-logo {
-  width: 52px;
+  width: 164px;
   height: auto;
 }
 
