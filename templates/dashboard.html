@@ -4,9 +4,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rekap {{ display_name }}</title>
+  <link rel="icon" type="image/gif" href="{{ url_for('static', filename='logo.gif') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="loading-screen" id="loadingScreen" aria-hidden="true">
+    <div class="loading-inner">
+      <img src="{{ url_for('static', filename='logo.gif') }}" alt="" class="loading-logo">
+      <div class="loading-text" id="loadingText"></div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var screenEl = document.getElementById('loadingScreen');
+      if (!screenEl) return;
+      var textEl = document.getElementById('loadingText');
+      var word = "IKN KOMUNITAS";
+      var frag = document.createDocumentFragment();
+
+      Array.prototype.forEach.call(word, function(ch, i){
+        var span = document.createElement('span');
+        if (ch === ' ') {
+          span.className = 'ld-space';
+          span.innerHTML = '&nbsp;';
+        } else {
+          span.className = 'ld-letter';
+          span.textContent = ch;
+          var angle = Math.random() * 360;
+          var dist = 90 + Math.random() * 140;
+          var dx = Math.cos(angle * Math.PI / 180) * dist;
+          var dy = Math.sin(angle * Math.PI / 180) * dist;
+          var rot = (Math.random() * 160) - 80;
+          span.style.setProperty('--dx', dx.toFixed(1) + 'px');
+          span.style.setProperty('--dy', dy.toFixed(1) + 'px');
+          span.style.setProperty('--rot', rot.toFixed(1) + 'deg');
+          span.style.setProperty('--delay', (i * 0.045).toFixed(3) + 's');
+        }
+        frag.appendChild(span);
+      });
+      textEl.appendChild(frag);
+
+      function playIntroSound(){
+        var introSound = new Audio("{{ url_for('static', filename='audio login.mp3') }}");
+        introSound.play().catch(function(e){ /* diblokir browser, abaikan */ });
+      }
+      playIntroSound();
+
+      setTimeout(function(){ screenEl.classList.add('ld-settled'); }, 520);
+
+      setTimeout(function(){
+        screenEl.classList.add('ld-hide');
+        setTimeout(function(){ screenEl.remove(); }, 650);
+      }, 2000);
+    })();
+  </script>
 {% macro pct_badge(value) %}
   {% if value and value.strip() and value.strip() not in ['-', '-%'] %}<span class="pct-badge">{{ value }}</span>{% endif %}
 {% endmacro %}
@@ -101,7 +152,7 @@
               {{ pct_badge(w.card.pb_elan_pct) }}
             </div>
             <span class="card-value">{{ w.card.pb_elan or "-" }}</span>
-            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB ELAN</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet <a href="https://docs.google.com/spreadsheets/d/1P5Ocw6Ny4bgG6cJTwLxFiPIoKkR7pfboHF5S1ZjJKAU/edit?gid=196155936#gid=196155936" target="_blank" rel="noopener" class="desc-link">PB ELAN</a></span>
           </div>
           <div class="info-card">
             <div class="card-head">
@@ -109,7 +160,7 @@
               {{ pct_badge(w.card.pb_cm_pct) }}
             </div>
             <span class="card-value">{{ w.card.pb_cm or "-" }}</span>
-            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB CM</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet <a href="https://docs.google.com/spreadsheets/d/1NSEyEsiFogMNYKIa-34JXRc9q5frVT-tuEt9BJK17Uo/edit?gid=761162951#gid=761162951" target="_blank" rel="noopener" class="desc-link">PB CM</a></span>
           </div>
           <div class="info-card">
             <div class="card-head">
@@ -117,7 +168,7 @@
               {{ pct_badge(w.card.pb_markas_pct) }}
             </div>
             <span class="card-value">{{ w.card.pb_markas or "-" }}</span>
-            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet PB MARKAS</span>
+            <span class="card-desc">Untuk lebih detailnya kamu bisa liat di sheet <a href="https://docs.google.com/spreadsheets/d/1XgypY02P7mSack8c9JRTo9sFHv2JTS-3brwMe7Gqe7I/edit?gid=1505099068#gid=1505099068" target="_blank" rel="noopener" class="desc-link">PB MARKAS</a></span>
           </div>
           <div class="info-card">
             <div class="card-head">
@@ -208,6 +259,64 @@
 
   <script>
     (function(){
+      function getAudioCtx(){
+        if (!window.__iknAudioCtx) {
+          var Ctx = window.AudioContext || window.webkitAudioContext;
+          window.__iknAudioCtx = new Ctx();
+        }
+        if (window.__iknAudioCtx.state === 'suspended') { window.__iknAudioCtx.resume(); }
+        return window.__iknAudioCtx;
+      }
+
+      function playHoverSound(){
+        try {
+          var ctx = getAudioCtx();
+          var now = ctx.currentTime;
+          var osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(720, now);
+          osc.frequency.exponentialRampToValueAtTime(980, now + 0.09);
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.16, now + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.14);
+        } catch (e) { /* audio unavailable - ignore */ }
+      }
+
+      function playWeekSwitchSound(){
+        try {
+          var ctx = getAudioCtx();
+          var now = ctx.currentTime;
+          var osc = ctx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(170, now + 0.16);
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.32, now + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1500, now);
+          osc.connect(filter);
+          filter.connect(g);
+          g.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        } catch (e) { /* audio unavailable - ignore */ }
+      }
+
+      var hoverTargets = Array.prototype.slice.call(document.querySelectorAll(
+        '.info-card, .box-total, .box-final, .box-week, .box-note, .breakdown-box'
+      ));
+      hoverTargets.forEach(function(el){
+        el.addEventListener('mouseenter', playHoverSound);
+      });
+
       var panels = Array.prototype.slice.call(document.querySelectorAll('.week-panel'));
       var dots = Array.prototype.slice.call(document.querySelectorAll('.dot-item'));
       var prevBtn = document.getElementById('prevBtn');
@@ -228,9 +337,18 @@
         if (navCircle) navCircle.textContent = (i + 1);
       }
 
-      dots.forEach(function(d){ d.addEventListener('click', function(){ show(parseInt(d.dataset.week, 10)); }); });
-      if (prevBtn) prevBtn.addEventListener('click', function(){ show(current - 1); });
-      if (nextBtn) nextBtn.addEventListener('click', function(){ show(current + 1); });
+      dots.forEach(function(d){
+        d.addEventListener('click', function(){
+          var target = parseInt(d.dataset.week, 10);
+          if (target !== current) { playWeekSwitchSound(); show(target); }
+        });
+      });
+      if (prevBtn) prevBtn.addEventListener('click', function(){
+        if (current > 0) { playWeekSwitchSound(); show(current - 1); }
+      });
+      if (nextBtn) nextBtn.addEventListener('click', function(){
+        if (current < panels.length - 1) { playWeekSwitchSound(); show(current + 1); }
+      });
       if (scrollPrev && weekTrack) scrollPrev.addEventListener('click', function(){ weekTrack.scrollBy({ left: -140, behavior: 'smooth' }); });
       if (scrollNext && weekTrack) scrollNext.addEventListener('click', function(){ weekTrack.scrollBy({ left: 140, behavior: 'smooth' }); });
 
@@ -241,14 +359,18 @@
         sheet.addEventListener('touchend', function(e){
           if (touchStartX === null) return;
           var dx = e.changedTouches[0].clientX - touchStartX;
-          if (Math.abs(dx) > 50){ show(current + (dx < 0 ? 1 : -1)); }
+          if (Math.abs(dx) > 50){
+            var dir = dx < 0 ? 1 : -1;
+            var next = current + dir;
+            if (next >= 0 && next < panels.length) { playWeekSwitchSound(); show(next); }
+          }
           touchStartX = null;
         }, {passive:true});
       }
 
       document.addEventListener('keydown', function(e){
-        if (e.key === 'ArrowLeft') show(current - 1);
-        if (e.key === 'ArrowRight') show(current + 1);
+        if (e.key === 'ArrowLeft' && current > 0) { playWeekSwitchSound(); show(current - 1); }
+        if (e.key === 'ArrowRight' && current < panels.length - 1) { playWeekSwitchSound(); show(current + 1); }
       });
 
       if (panels.length) show(0);
