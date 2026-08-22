@@ -16,18 +16,28 @@
     {% set pv_cm = card.pb_cm_pct|pctnum %}
     {% set pv_elan = card.pb_elan_pct|pctnum %}
     {% set pv_total = card.total_pct|pctnum %}
-    {% set off_markas = 0 %}
-    {% set off_total = pv_markas %}
-    {% set off_elan = pv_markas + pv_total %}
-    {% set off_cm = pv_markas + pv_total + pv_elan %}
+    {% set r_markas = 16.0 %}
+    {% set r_cm = 12.3 %}
+    {% set r_elan = 8.6 %}
+    {% set r_total = 4.9 %}
+    {% set c_markas = 2 * 3.14159265 * r_markas %}
+    {% set c_cm = 2 * 3.14159265 * r_cm %}
+    {% set c_elan = 2 * 3.14159265 * r_elan %}
+    {% set c_total = 2 * 3.14159265 * r_total %}
     <div class="breakdown-body">
       <svg viewBox="0 0 36 36" class="donut">
-        <circle class="donut-bg" cx="18" cy="18" r="15.9155"></circle>
         <g transform="rotate(-90 18 18)">
-          {% if pv_markas > 0 %}<circle class="donut-seg" style="stroke: var(--chart-markas);" stroke-dasharray="{{ pv_markas }} {{ 100 - pv_markas }}" stroke-dashoffset="{{ -off_markas }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
-          {% if pv_total > 0 %}<circle class="donut-seg" style="stroke: var(--chart-total);" stroke-dasharray="{{ pv_total }} {{ 100 - pv_total }}" stroke-dashoffset="{{ -off_total }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
-          {% if pv_elan > 0 %}<circle class="donut-seg" style="stroke: var(--chart-elan);" stroke-dasharray="{{ pv_elan }} {{ 100 - pv_elan }}" stroke-dashoffset="{{ -off_elan }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
-          {% if pv_cm > 0 %}<circle class="donut-seg" style="stroke: var(--chart-cm);" stroke-dasharray="{{ pv_cm }} {{ 100 - pv_cm }}" stroke-dashoffset="{{ -off_cm }}" cx="18" cy="18" r="15.9155"></circle>{% endif %}
+          <circle class="donut-track" cx="18" cy="18" r="{{ r_markas }}"></circle>
+          <circle class="donut-seg" style="stroke: var(--chart-markas);" stroke-dasharray="{{ (pv_markas * c_markas / 100)|round(2) }} {{ c_markas|round(2) }}" cx="18" cy="18" r="{{ r_markas }}"></circle>
+
+          <circle class="donut-track" cx="18" cy="18" r="{{ r_cm }}"></circle>
+          <circle class="donut-seg" style="stroke: var(--chart-cm);" stroke-dasharray="{{ (pv_cm * c_cm / 100)|round(2) }} {{ c_cm|round(2) }}" cx="18" cy="18" r="{{ r_cm }}"></circle>
+
+          <circle class="donut-track" cx="18" cy="18" r="{{ r_elan }}"></circle>
+          <circle class="donut-seg" style="stroke: var(--chart-elan);" stroke-dasharray="{{ (pv_elan * c_elan / 100)|round(2) }} {{ c_elan|round(2) }}" cx="18" cy="18" r="{{ r_elan }}"></circle>
+
+          <circle class="donut-track" cx="18" cy="18" r="{{ r_total }}"></circle>
+          <circle class="donut-seg" style="stroke: var(--chart-total);" stroke-dasharray="{{ (pv_total * c_total / 100)|round(2) }} {{ c_total|round(2) }}" cx="18" cy="18" r="{{ r_total }}"></circle>
         </g>
       </svg>
       <div class="breakdown-legend">
