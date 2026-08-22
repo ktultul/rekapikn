@@ -4,9 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>REKAPAN IKN RF RETURN BEYOND</title>
+  <link rel="icon" type="image/gif" href="{{ url_for('static', filename='logo.gif') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="loading-screen" id="loginLoading" aria-hidden="true" style="opacity:0; pointer-events:none;">
+    <div class="loading-inner">
+      <img src="{{ url_for('static', filename='logo.gif') }}" alt="" class="loading-logo">
+    </div>
+  </div>
+  <script>
+    (function(){
+      var overlay = document.getElementById('loginLoading');
+      if (!overlay) return;
+
+      function playStartSound(){
+        try {
+          var Ctx = window.AudioContext || window.webkitAudioContext;
+          var ctx = new Ctx();
+          if (ctx.state === 'suspended') { ctx.resume(); }
+          var now = ctx.currentTime;
+          var whoosh = ctx.createOscillator();
+          whoosh.type = 'sawtooth';
+          whoosh.frequency.setValueAtTime(90, now);
+          whoosh.frequency.exponentialRampToValueAtTime(650, now + 0.55);
+          var g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.exponentialRampToValueAtTime(0.36, now + 0.1);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+          var filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, now);
+          whoosh.connect(filter);
+          filter.connect(g);
+          g.connect(ctx.destination);
+          whoosh.start(now);
+          whoosh.stop(now + 0.65);
+        } catch (e) { /* audio unavailable or blocked - ignore */ }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        var form = document.querySelector('form');
+        if (!form) return;
+        var submitted = false;
+        form.addEventListener('submit', function(e){
+          if (submitted) return;
+          submitted = true;
+          e.preventDefault();
+          overlay.style.opacity = '1';
+          overlay.style.pointerEvents = 'all';
+          var logo = overlay.querySelector('.loading-logo');
+          if (logo) logo.classList.add('ld-pulse');
+          playStartSound();
+          setTimeout(function(){ form.submit(); }, 550);
+        });
+      });
+    })();
+  </script>
   <div class="id-card">
     <img src="{{ url_for('static', filename='logo.gif') }}" alt="Logo" class="brand-logo">
     <div class="eyebrow">IKN - RF RETURN BEYOND</div>
