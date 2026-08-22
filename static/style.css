@@ -184,7 +184,7 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
 }
 
 .dash-logo {
-  width: 108px;
+  width: 78px;
   height: auto;
 }
 
@@ -411,17 +411,17 @@ h1, h2, h3 { font-family: 'Rajdhani', sans-serif; }
 .breakdown-body {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .donut {
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
   flex-shrink: 0;
 }
-.donut-bg { fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 5; }
-.donut-seg { fill: none; stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 0 3px rgba(0,0,0,0.35)); }
+.donut-track { fill: none; stroke: rgba(255,255,255,0.14); stroke-width: 2.8; }
+.donut-seg { fill: none; stroke-width: 2.8; stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(0,0,0,0.35)); }
 
 .breakdown-legend {
   display: flex;
